@@ -11,34 +11,61 @@ try {
     $session = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($session) {
-        // Sesión existente encontrada → registrar como jugador 2
+        // 🎮 Segundo jugador
         $session_id = $session['id'];
 
         // Insertar jugador 2
-        $stmt = $pdo->prepare("INSERT INTO players (session_id, numero_jugador) VALUES (?, 2)");
+        $stmt = $pdo->prepare("INSERT INTO player (session_id) VALUES (?)");
         $stmt->execute([$session_id]);
+        $numero_jugador = 2;
 
-        // Cambiar estado a "jugando"
+        // Actualizar sesión a 'jugando'
         $pdo->prepare("UPDATE session SET status = 'jugando' WHERE id = ?")->execute([$session_id]);
 
+        // Crear nuevo board con 13 referencias a math
+        $max_id = $pdo->query("SELECT MAX(id) FROM math")->fetchColumn();
+
+        // Generar 13 números aleatorios únicos
+        $ids = [];
+        while (count($ids) < 13) {
+            $rand = random_int(1, $max_id);
+            if (!in_array($rand, $ids)) {
+                $ids[] = $rand;
+            }
+        }
+
+        // Preparar INSERT en board
+        $columns = implode(',', array_map(fn($i) => "math_id_$i", range(1, 13)));
+        $placeholders = implode(',', array_fill(0, 13, '?'));
+
+        $stmt = $pdo->prepare("INSERT INTO board ($columns) VALUES ($placeholders)");
+        $stmt->execute($ids);
+        $board_id = $pdo->lastInsertId();
+
+        // Vincular board con sesión
+        $pdo->prepare("INSERT INTO math_session (session_id, board_id) VALUES (?, ?)")
+            ->execute([$session_id, $board_id]);
+
+        // Respuesta al cliente
         echo json_encode([
             'session_id' => $session_id,
-            'numero_jugador' => 2,
+            'numero_jugador' => $numero_jugador,
             'status' => 'jugando'
         ]);
     } else {
-        // No hay sesión en espera → crear nueva sesión y registrar jugador 1
-        $stmt = $pdo->prepare("INSERT INTO session (status) VALUES ('en espera')");
-        $stmt->execute();
+        // 🎮 Primer jugador
+        $pdo->prepare("INSERT INTO session (status) VALUES ('en espera')")->execute();
         $session_id = $pdo->lastInsertId();
 
         // Insertar jugador 1
-        $stmt = $pdo->prepare("INSERT INTO players (session_id, numero_jugador) VALUES (?, 1)");
+        $stmt = $pdo->prepare("INSERT INTO player (session_id) VALUES (?)");
         $stmt->execute([$session_id]);
+        $numero_jugador = 1;
 
+        // Respuesta al cliente
         echo json_encode([
             'session_id' => $session_id,
-            'numero_jugador' => 1,
+            'numero_jugador' => $numero_jugador,
             'status' => 'en espera'
         ]);
     }
