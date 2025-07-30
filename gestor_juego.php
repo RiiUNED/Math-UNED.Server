@@ -7,7 +7,6 @@ try {
 
     $input = json_decode(file_get_contents('php://input'), true);
 
-    // Aceptar ambos formatos de nombres de campos
     $session_id = $input['session_id'] ?? $input['session'] ?? null;
     $player_id = $input['player_id'] ?? $input['jugador'] ?? null;
 
@@ -19,6 +18,8 @@ try {
 
     $res = $input['res'] ?? null;
     $skip_request = $input['skip'] ?? false;
+    $ex_num_cliente = $input['ex_num'] ?? null;
+    $puntaje_cliente = $input['aciertos'] ?? null;
 
     // Obtener jugador
     $stmt = $pdo->prepare("SELECT * FROM player WHERE id = ? AND session_id = ?");
@@ -28,6 +29,31 @@ try {
     if (!$player) {
         http_response_code(404);
         echo json_encode(['error' => 'Jugador no encontrado en la sesión']);
+        exit;
+    }
+
+    // Obtener datos del jugador desde BD
+    $index = (int) $player['pregunta_actual'];
+    $puntaje = (int) $player['puntaje'];
+    $skips = (int) $player['skips'];
+
+    // Validar ex_num del cliente
+    if ($ex_num_cliente !== null && (int)$ex_num_cliente !== ($index + 1)) {
+        echo json_encode([
+            'error' => 'Número de ejercicio desincronizado',
+            'esperado' => $index + 1,
+            'recibido' => (int)$ex_num_cliente
+        ]);
+        exit;
+    }
+
+    // Validar puntaje del cliente
+    if ($puntaje_cliente !== null && (int)$puntaje_cliente !== $puntaje) {
+        echo json_encode([
+            'error' => 'Puntaje desincronizado',
+            'esperado' => $puntaje,
+            'recibido' => (int)$puntaje_cliente
+        ]);
         exit;
     }
 
@@ -41,7 +67,7 @@ try {
         exit;
     }
 
-    // Obtener board_id de la sesión
+    // Obtener board_id
     $stmt = $pdo->prepare("SELECT board_id FROM math_session WHERE session_id = ?");
     $stmt->execute([$session_id]);
     $board_id = $stmt->fetchColumn();
@@ -52,7 +78,7 @@ try {
         exit;
     }
 
-    // Obtener contenido del tablero
+    // Obtener los ejercicios del tablero
     $stmt = $pdo->prepare("
         SELECT 
             math_id_1, math_id_2, math_id_3, math_id_4, math_id_5,
@@ -62,25 +88,19 @@ try {
     $stmt->execute([$board_id]);
     $board = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $index = (int) $player['pregunta_actual'];
-    $progreso = $player['progreso'];
-    $puntaje = (int) $player['puntaje'];
-    $skips = (int) $player['skips'];
     $avance = false;
 
-    // Procesar acción
+    // Procesar acción del jugador
     if ($skip_request === true) {
         if ($skips >= 3) {
             echo json_encode([
                 'error' => 'Límite de skips alcanzado',
-                'progreso' => $progreso,
                 'skips' => $skips,
                 'puntaje' => $puntaje
             ]);
             exit;
         }
 
-        $progreso .= '-';
         $skips += 1;
         $avance = true;
 
@@ -91,44 +111,24 @@ try {
         $correct = $stmt->fetchColumn();
 
         if ((int)$res === (int)$correct) {
-            $progreso .= 'X';
             $puntaje += 1;
-        } else {
-            $progreso .= 'O';
+            $avance = true;
         }
-        $avance = true;
+        // Si falla, no avanza
     }
 
-    // Si el jugador avanza
     if ($avance) {
         $stmt = $pdo->prepare("
             UPDATE player 
-            SET progreso = ?, skips = ?, puntaje = ?, pregunta_actual = pregunta_actual + 1 
+            SET skips = ?, puntaje = ?, pregunta_actual = pregunta_actual + 1 
             WHERE id = ?");
-        $stmt->execute([$progreso, $skips, $puntaje, $player_id]);
-
+        $stmt->execute([$skips, $puntaje, $player_id]);
         $index += 1;
+    } else {
+        $stmt = $pdo->prepare("UPDATE player SET skips = ?, puntaje = ? WHERE id = ?");
+        $stmt->execute([$skips, $puntaje, $player_id]);
     }
 
-    // Si terminó todos los ejercicios
-    if ($index >= 13) {
-        echo json_encode(['message' => 'Juego finalizado para este jugador.']);
-        exit;
-    }
-
-    // Obtener nuevo ejercicio tras avance
-    $math_id = $board["math_id_" . ($index + 1)];
-    $stmt = $pdo->prepare("SELECT op1, op2, res FROM math WHERE id = ?");
-    $stmt->execute([$math_id]);
-    $ejercicio = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$ejercicio) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Ejercicio no encontrado']);
-        exit;
-    }
-
-    // Verificar victoria
     if ($puntaje >= 10) {
         $pdo->prepare("UPDATE session SET status = 'finalizada' WHERE id = ?")->execute([$session_id]);
         $pdo->prepare("UPDATE board SET ganador = ? WHERE id = ?")->execute([$player_id, $board_id]);
@@ -141,7 +141,18 @@ try {
         exit;
     }
 
-    // Obtener puntos del rival
+    if ($index >= 13) {
+        echo json_encode(['message' => 'Juego finalizado para este jugador.']);
+        exit;
+    }
+
+    // Obtener el ejercicio actual
+    $math_id = $board["math_id_" . ($index + 1)];
+    $stmt = $pdo->prepare("SELECT op1, op2, res FROM math WHERE id = ?");
+    $stmt->execute([$math_id]);
+    $ejercicio = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Obtener puntaje del rival
     $stmt = $pdo->prepare("SELECT puntaje FROM player WHERE session_id = ? AND id != ?");
     $stmt->execute([$session_id, $player_id]);
     $puntaje_rival = $stmt->fetchColumn() ?? 0;
@@ -151,7 +162,6 @@ try {
         'op1' => $ejercicio['op1'],
         'op2' => $ejercicio['op2'],
         'ex_num' => $index + 1,
-        'progreso' => strlen($progreso),
         'puntaje' => $puntaje,
         'skips' => $skips,
         'rival' => $puntaje_rival

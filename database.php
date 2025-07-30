@@ -28,11 +28,10 @@ function getDB() {
             status ENUM('en espera', 'jugando', 'finalizada') NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-        // Jugadores por sesión
+        // Jugadores por sesión (sin progreso)
         $pdo->exec("CREATE TABLE IF NOT EXISTS player (
             id INT AUTO_INCREMENT PRIMARY KEY,
             session_id INT NOT NULL,
-            progreso VARCHAR(13) DEFAULT '',
             puntaje INT DEFAULT 0,
             skips TINYINT DEFAULT 0,
             pregunta_actual TINYINT DEFAULT 0,
@@ -56,7 +55,7 @@ function getDB() {
             ganador INT DEFAULT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-        // Relación 1:1 entre sesión y tablero
+        // Relación sesión–tablero
         $pdo->exec("CREATE TABLE IF NOT EXISTS math_session (
             session_id INT PRIMARY KEY,
             board_id INT,
