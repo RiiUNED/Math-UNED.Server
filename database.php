@@ -32,8 +32,10 @@ function getDB() {
         $pdo->exec("CREATE TABLE IF NOT EXISTS player (
             id INT AUTO_INCREMENT PRIMARY KEY,
             session_id INT NOT NULL,
-            progreso INT DEFAULT 0,
+            progreso VARCHAR(13) DEFAULT '',
             puntaje INT DEFAULT 0,
+            skips TINYINT DEFAULT 0,
+            pregunta_actual TINYINT DEFAULT 0,
             FOREIGN KEY (session_id) REFERENCES session(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
@@ -45,7 +47,7 @@ function getDB() {
             res INT NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-        // Tablero que contiene referencias a 13 ejercicios únicos de 'math'
+        // Tablero con 13 ejercicios de math
         $pdo->exec("CREATE TABLE IF NOT EXISTS board (
             id INT AUTO_INCREMENT PRIMARY KEY,
             math_id_1 INT, math_id_2 INT, math_id_3 INT, math_id_4 INT, math_id_5 INT,
@@ -62,7 +64,7 @@ function getDB() {
             FOREIGN KEY (board_id) REFERENCES board(id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-        // Insertar multiplicaciones solo si la tabla está vacía
+        // Insertar las multiplicaciones si la tabla está vacía
         $stmt = $pdo->query("SELECT COUNT(*) FROM math");
         if ($stmt->fetchColumn() == 0) {
             for ($i = 2; $i <= 9; $i++) {
