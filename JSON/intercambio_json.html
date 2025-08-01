@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Intercambio JSON - Math UNED</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; line-height: 1.6; }
+        pre, code { background-color: #f4f4f4; padding: 0.5em; border-radius: 5px; display: block; white-space: pre-wrap; }
+        h2 { color: #2a6ebb; border-bottom: 1px solid #ddd; padding-bottom: 0.3em; }
+    </style>
+</head>
+<body>
+<h1>Intercambio de JSON entre Cliente y Servidor</h1>
+<h2>🔄 2. Polling de estado de sesión</h2>
+<h3>📤 Cliente:</h3>
+<pre><code>{
+  "session_id": 10,
+  "player_id": 25,
+  "numero_jugador": 1
+}</code></pre>
+
+<h3>📥 Servidor (aún en espera):</h3>
+<pre><code>{
+  "session_id": 10,
+  "player_id": 25,
+  "status": "en espera",
+  "board_id": 4,
+  "numero_jugador": 1
+}</code></pre>
+
+<h3>📥 Servidor (listo para jugar):</h3>
+<pre><code>{
+  "op1": 4,
+  "op2": 7,
+  "ex_num": 1,
+  "puntaje": 0,
+  "skips": 0,
+  "rival": 0,
+  "session_id": 10,
+  "board_id": 4,
+  "player_id": 25,
+  "numero_jugador": 1
+}</code></pre>
+
+<h3>⚠️ Error si player_id no coincide con numero_jugador:</h3>
+<pre><code>{
+  "error": "Desincronización: player_id no corresponde al número de jugador",
+  "session_id": 10,
+  "player_id": 25,
+  "numero_jugador": 1
+}</code></pre>
+</body>
+</html>
