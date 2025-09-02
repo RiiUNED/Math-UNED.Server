@@ -1,17 +1,43 @@
-
 <!DOCTYPE html>
-<html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
 <head>
-    <meta charset="UTF-8">
-    <title>Intercambio JSON - Math UNED</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 2em; line-height: 1.6; }
-        pre, code { background-color: #f4f4f4; padding: 0.5em; border-radius: 5px; display: block; white-space: pre-wrap; }
-        h2 { color: #2a6ebb; border-bottom: 1px solid #ddd; padding-bottom: 0.3em; }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>-</title>
+  <style>
+    html { line-height: 1.5; font-family: Georgia, serif; font-size: 20px; color: #1a1a1a; background-color: #fdfdfd; }
+    body { margin: 0 auto; max-width: 36em; padding: 50px; }
+    pre > code.sourceCode { white-space: pre; }
+  </style>
 </head>
 <body>
-<h1>Intercambio de JSON entre Cliente y Servidor</h1>
+<h1>📘 Especificación de Intercambio JSON – Juego Educativo</h1>
+<p>Este documento detalla todos los formatos de JSON que el <strong>cliente puede enviar</strong> y los que el <strong>servidor puede devolver</strong> en las distintas fases del juego.</p>
+<hr />
+
+<h2>🟢 1. Registro de jugador</h2>
+<h3>📤 Cliente envía:</h3>
+<pre><code>{}</code></pre>
+
+<h3>📥 Servidor responde:</h3>
+<h4>Primer jugador:</h4>
+<pre><code>{
+  "session_id": 10,
+  "player_id": 25,
+  "numero_jugador": 1,
+  "status": "en espera"
+}</code></pre>
+
+<h4>Segundo jugador:</h4>
+<pre><code>{
+  "session_id": 10,
+  "player_id": 26,
+  "numero_jugador": 2,
+  "status": "en espera"
+}</code></pre>
+
+<hr />
 <h2>🔄 2. Polling de estado de sesión</h2>
 <h3>📤 Cliente:</h3>
 <pre><code>{
@@ -20,35 +46,154 @@
   "numero_jugador": 1
 }</code></pre>
 
-<h3>📥 Servidor (aún en espera):</h3>
+<h3>📥 Servidor responde:</h3>
+<h4>Si la sesión sigue en espera:</h4>
 <pre><code>{
+  "status": "en espera",
+  "message": "La sesión no está activa.",
   "session_id": 10,
   "player_id": 25,
-  "status": "en espera",
-  "board_id": 4,
   "numero_jugador": 1
 }</code></pre>
 
-<h3>📥 Servidor (listo para jugar):</h3>
+<h4>Si la sesión está lista para jugar:</h4>
 <pre><code>{
-  "op1": 4,
-  "op2": 7,
+  "session_id": 10,
+  "board_id": 7,
+  "player_id": 25,
+  "numero_jugador": 1,
+  "op1": 3,
+  "op2": 6,
   "ex_num": 1,
   "puntaje": 0,
   "skips": 0,
-  "rival": 0,
-  "session_id": 10,
-  "board_id": 4,
-  "player_id": 25,
-  "numero_jugador": 1
+  "rival": 0
 }</code></pre>
 
-<h3>⚠️ Error si player_id no coincide con numero_jugador:</h3>
+<hr />
+<h2>🎮 3. Envío de respuestas o skip</h2>
+<h3>📤 Cliente (respuesta):</h3>
 <pre><code>{
-  "error": "Desincronización: player_id no corresponde al número de jugador",
   "session_id": 10,
   "player_id": 25,
-  "numero_jugador": 1
+  "numero_jugador": 1,
+  "skip": false,
+  "skips": 1,
+  "aciertos": 3,
+  "rival": 2,
+  "ex_num": 4,
+  "res": 36
 }</code></pre>
+
+<h3>📤 Cliente (skip):</h3>
+<pre><code>{
+  "session_id": 10,
+  "player_id": 25,
+  "numero_jugador": 1,
+  "skip": true,
+  "skips": 1,
+  "aciertos": 3,
+  "rival": 2,
+  "ex_num": 4,
+  "res": 0
+}</code></pre>
+
+<h3>📥 Servidor responde (respuesta correcta o skip válido):</h3>
+<pre><code>{
+  "session_id": 10,
+  "board_id": 7,
+  "player_id": 25,
+  "numero_jugador": 1,
+  "op1": 2,
+  "op2": 5,
+  "ex_num": 5,
+  "puntaje": 4,
+  "skips": 1,
+  "rival": 2
+}</code></pre>
+
+<h3>📥 Servidor responde (respuesta incorrecta):</h3>
+<pre><code>{
+  "session_id": 10,
+  "board_id": 7,
+  "player_id": 25,
+  "numero_jugador": 1,
+  "op1": 2,
+  "op2": 5,
+  "ex_num": 4,
+  "puntaje": 3,
+  "skips": 1,
+  "rival": 2
+}</code></pre>
+
+<h3>📥 Servidor responde (ya hizo 3 skips):</h3>
+<pre><code>{
+  "session_id": 10,
+  "board_id": 7,
+  "player_id": 25,
+  "numero_jugador": 1,
+  "op1": 2,
+  "op2": 5,
+  "ex_num": 4,
+  "puntaje": 3,
+  "skips": 3,
+  "rival": 2
+}</code></pre>
+
+<hr />
+<h2>🏁 4. Final de partida</h2>
+<h3>📥 Si gana el jugador:</h3>
+<pre><code>{
+  "ganador": true,
+  "mensaje": "¡Has ganado!",
+  "puntaje": 10
+}</code></pre>
+
+<h3>📥 Si el rival ya ha ganado:</h3>
+<pre><code>{
+  "ganador": false,
+  "mensaje": "Has perdido.",
+  "puntaje": 6
+}</code></pre>
+
+<hr />
+<h2>❌ 5. Posibles errores</h2>
+<h3>Jugador no existe:</h3>
+<pre><code>{
+  "error": "Jugador no encontrado en la sesión",
+  "session_id": 10,
+  "player_id": 999,
+  "players_disponibles": [25, 26]
+}</code></pre>
+
+<h3>Ejercicio desincronizado:</h3>
+<pre><code>{
+  "error": "Número de ejercicio desincronizado",
+  "esperado": 5,
+  "recibido": 4,
+  "session_id": 10,
+  "board_id": 7,
+  "numero_jugador": 1,
+  "player_id": 25
+}</code></pre>
+
+<h3>Puntaje desincronizado:</h3>
+<pre><code>{
+  "error": "Puntaje desincronizado",
+  "esperado": 4,
+  "recibido": 3,
+  "session_id": 10,
+  "board_id": 7,
+  "numero_jugador": 1,
+  "player_id": 25
+}</code></pre>
+
+<hr />
+<h2>📌 Notas finales</h2>
+<ul>
+  <li>El campo <code>ex_num</code> va de 1 a 13 y representa la posición en el tablero.</li>
+  <li>El cliente debe respetar la sincronización de <code>puntaje</code> y <code>ex_num</code>.</li>
+  <li>Si el juego ya terminó (estado <code>"finalizada"</code>), cualquier interacción devolverá si ha ganado o perdido.</li>
+</ul>
 </body>
 </html>
