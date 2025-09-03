@@ -142,18 +142,26 @@
 
 <hr />
 <h2>🏁 4. Final de partida</h2>
-<h3>📥 Si gana el jugador:</h3>
+<h3>📥 Ejemplo (ganaste):</h3>
 <pre><code>{
-  "ganador": true,
-  "mensaje": "¡Has ganado!",
-  "puntaje": 10
+  "resultado": "ganaste",
+  "puntaje": 10,
+  "rival": 0,
+  "session_id": 53,
+  "board_id": 53,
+  "player_id": 106,
+  "numero_jugador": 2
 }</code></pre>
 
-<h3>📥 Si el rival ya ha ganado:</h3>
+<h3>📥 Ejemplo (perdiste):</h3>
 <pre><code>{
-  "ganador": false,
-  "mensaje": "Has perdido.",
-  "puntaje": 6
+  "resultado": "perdiste",
+  "puntaje": 6,
+  "rival": 2,
+  "session_id": 53,
+  "board_id": 53,
+  "player_id": 106,
+  "numero_jugador": 2
 }</code></pre>
 
 <hr />
@@ -193,7 +201,7 @@
 <ul>
   <li>El campo <code>ex_num</code> va de 1 a 13 y representa la posición en el tablero.</li>
   <li>El cliente debe respetar la sincronización de <code>puntaje</code> y <code>ex_num</code>.</li>
-  <li>Si el juego ya terminó (estado <code>"finalizada"</code>), cualquier interacción devolverá si ha ganado o perdido.</li>
+  <li>Si el juego ya terminó (estado <code>"finalizada"</code>), el servidor informará el resultado mediante el objeto con <code>resultado</code> mostrado arriba.</li>
 </ul>
 </body>
 </html>
